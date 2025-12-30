@@ -16,9 +16,9 @@ fi
 # Check if .env.local exists
 if [ ! -f ".env.local" ]; then
   echo "Warning: .env.local file not found!"
-  echo "Creating .env.local with GEMINI_API_KEY placeholder..."
-  echo "GEMINI_API_KEY=your-gemini-api-key-here" > .env.local
-  echo "Please update .env.local with your actual Gemini API key."
+  echo "Creating .env.local with OPENAI_API_KEY placeholder..."
+  echo "OPENAI_API_KEY=your-openai-api-key-here" > .env.local
+  echo "Please update .env.local with your actual OpenAI API key."
   echo ""
 fi
 
