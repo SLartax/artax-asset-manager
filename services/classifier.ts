@@ -17,7 +17,7 @@ export const classifyWithAI = async (input: ClassificationInput): Promise<Partia
   try {
     const messages: OpenAI.MessageParam[] = [];
     
-    let textContent = 'Sei un analista esperto di Real Estate e Finanza. Analizza il testo e/o l'immagine forniti (documenti tecnici, perizie, brochure) ed estrai i dati strutturati per il database Artax.';
+    let textContent = `Sei un analista esperto di Real Estate e Finanza. Analizza il testo e/o l'immagine forniti (documenti tecnici, perizie, brochure) ed estrai i dati strutturati per il database Artax.`;
     
     if (input.text) {
       textContent += `\n\nTesto dell'operazione: ${input.text}`;
