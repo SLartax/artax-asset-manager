@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "run": "bash run.sh",
-    "deploy": "bash deploy.sh"
+    "deploy": "bash deploy.sh",
+    "test": "echo 'No tests configured yet. Skipping test suite.'"
   },
   "dependencies": {
     "react": "^19.2.3",
