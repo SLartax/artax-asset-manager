@@ -15,46 +15,31 @@ export interface ClassificationInput {
 
 export const classifyWithAI = async (input: ClassificationInput): Promise<Partial<Deal>> => {
   try {
-    const messages: OpenAI.MessageParam[] = [];
-    
     let textContent = `Sei un analista esperto di Real Estate e Finanza. Analizza il testo e/o l'immagine forniti (documenti tecnici, perizie, brochure) ed estrai i dati strutturati per il database Artax.`;
     
     if (input.text) {
       textContent += `\n\nTesto dell'operazione: ${input.text}`;
     }
     
-    messages.push({
-      role: 'user',
-      content: textContent,
+    const systemPrompt = 'You are an expert analyst in Real Estate and Finance. Analyze the provided text and extract structured data for the Artax database. Return a JSON object with: {title, category, subType, location, indicativeValue, roi, cagr, description, ndaSigned, mandateAcquired, priority, signals, confidence, confidenceReason}';
+    
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4-turbo',
+      max_tokens: 2048,
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt,
+        },
+        {
+          role: 'user',
+          content: textContent,
+        },
+      ],
     });
     
-    if (input.image) {
-      messages[0].content = [
-        {
-          type: 'text',
-          text: textContent,
-        },
-        {
-          type: 'image',
-          image: {
-            media_type: input.image.mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
-            data: input.image.data,
-          },
-        },
-      ] as unknown as string;
-    }
-    
-    const response = await openai.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 2048,
-      messages: messages,
-      system: 'You are an expert analyst in Real Estate and Finance. Analyze the provided text and/or image (technical documents, appraisals, brochures) and extract structured data for the Artax database. Return a JSON object with the following schema: {title, category, subType, location, indicativeValue, roi?, cagr?, description, ndaSigned?, mandateAcquired?, priority, signals?, confidence, confidenceReason}. Always return valid JSON only.',
-    }) as any;
-    
-    const textResponse = response.content[0];
-    const jsonText = typeof textResponse === 'object' && 'text' in textResponse ? textResponse.text : '';
-    
-    const result = JSON.parse(jsonText || '{}');
+    const textResponse = response.choices[0]?.message?.content || '';
+    const result = JSON.parse(textResponse || '{}');
     
     return {
       ...result,
