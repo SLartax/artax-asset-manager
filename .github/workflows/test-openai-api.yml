@@ -1,4 +1,4 @@
-name: Test OpenAI API
+name: Build and TypeScript Validation (No Secrets)
 
 on:
   push:
@@ -20,6 +20,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -36,9 +38,5 @@ jobs:
       - name: Run TypeScript type check
         run: npx tsc --noEmit
 
-      - name: Test OpenAI API Integration
-        if: github.event_name != 'pull_request'
-        run: npm test -- --testPathPattern="classifier" || true
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          NODE_ENV: test
+      # Deliberately no API credentials are injected into builds or pull-request code.
+      # AI integration tests require a dedicated, restricted server-side test setup.
