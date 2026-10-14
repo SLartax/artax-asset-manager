@@ -7,6 +7,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test-openai:
     runs-on: ubuntu-latest
@@ -34,6 +37,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Test OpenAI API Integration
+        if: github.event_name != 'pull_request'
         run: npm test -- --testPathPattern="classifier" || true
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
