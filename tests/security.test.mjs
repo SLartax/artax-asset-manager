@@ -47,7 +47,7 @@ test('untrusted documents cannot change trusted instructions or add tools', () =
 test('reject arbitrary AI fields, invalid numbers, enums and prototype keys', () => {
   for (const payload of [{ ...output, action: 'send_email' }, { ...output, role: 'Admin' }, { ...output, ndaSigned: true },
     { ...output, confidence: 101 }, { ...output, indicativeValue: Infinity }, { ...output, category: 'unknown' },
-    { ...output, signals: [{ label: 'x', score: 11 }] }, JSON.parse(JSON.stringify(output).replace('{', '{"__proto__":{},'))]) {
+    { ...output, signals: [{ label: 'x', score: 11 }] }, Object.defineProperty({ ...output }, '__proto__', { value: {}, enumerable: true })]) {
     assert.throws(() => classificationSchema.parse(payload));
   }
 });
