@@ -33,6 +33,7 @@ export interface Referent {
   email: string;
   role: string;
   department: string;
+  archived?: boolean;
 }
 
 export interface DealSignal {

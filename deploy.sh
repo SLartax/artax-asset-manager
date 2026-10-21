@@ -9,7 +9,7 @@ echo ""
 # Check if node_modules exists
 if [ ! -d "node_modules" ]; then
   echo "Installing dependencies..."
-  npm install
+  npm ci --ignore-scripts
   echo ""
 fi
 
@@ -27,8 +27,8 @@ echo "Build completed successfully!"
 echo "Output directory: dist/"
 echo ""
 echo "Deployment Steps:"
-echo "1. Upload the contents of the 'dist' folder to your web server"
-echo "2. Set the OPENAI_API_KEY environment variable on your server"
-echo "3. Configure your server to route all requests to index.html (for client-side routing)"
+echo "1. Review SECURITY.md and configure the authenticated Node backend and HTTPS proxy."
+echo "2. Keep all credentials server-side and database files outside the public document root."
+echo "3. This script only builds files; it does not publish a production release."
 echo ""
 echo "To preview the build locally, run: npm run preview"

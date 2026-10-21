@@ -39,6 +39,7 @@ const ImportModule: React.FC<ImportModuleProps> = ({
   const handleAnalyze = async () => {
     if (!inputText.trim() && !attachedImage) return;
     setIsAnalyzing(true);
+    setAnalysis(null);
     setStep(2);
     
     try {
@@ -49,7 +50,7 @@ const ImportModule: React.FC<ImportModuleProps> = ({
       const result = await classifyWithAI(input);
       setAnalysis(result);
     } catch (err) {
-      alert("Errore durante l'analisi intelligente. Riprova.");
+      alert(err instanceof Error ? err.message : "Analisi non disponibile.");
       setStep(1);
     } finally {
       setIsAnalyzing(false);
@@ -62,9 +63,10 @@ const ImportModule: React.FC<ImportModuleProps> = ({
     
     const file = e.dataTransfer.files[0];
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { alert('Dimensione massima: 5 MB'); return; }
 
     // Gestione Immagini (per screenshot di PDF come nell'esempio)
-    if (file.type.startsWith('image/')) {
+    if (['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = (event.target?.result as string).split(',')[1];
@@ -191,6 +193,7 @@ const ImportModule: React.FC<ImportModuleProps> = ({
                       className="flex-1 p-6 bg-transparent rounded-2xl text-sm focus:outline-none font-serif leading-relaxed resize-none"
                       placeholder="Incolla testo dell'offerta oppure TRASCINA QUI uno SCREENSHOT del documento tecnico (es. perizia, visura, email)..."
                       value={inputText}
+                      maxLength={50000}
                       onChange={(e) => setInputText(e.target.value)}
                     />
                   </div>
