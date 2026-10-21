@@ -1,20 +1,7 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Artax Deal Manager
 
-# Run and deploy your AI Studio app
+Authenticated browser interface and Node.js backend. Production deployment is deliberately separate from code review.
 
-This contains everything you need to run your app locally.
+Use Node.js 24 LTS. Install with `npm ci --ignore-scripts`. Run `npm test`, `npm run typecheck` and `npm run build`.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1JjtNBhWPzwLIpkQRX_idhL5iuHQ4YdUl
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+See [SECURITY.md](SECURITY.md) for server configuration, local development, migration of existing browser data, deployment prerequisites and rollback. Credentials belong only in the backend secret manager. No API key is required for the tests or browser build.

@@ -4,7 +4,6 @@ import { Role } from '../types';
 
 interface SidebarProps {
   currentRole: Role;
-  onRoleChange: (role: Role) => void;
   activeTab: 'dashboard' | 'list' | 'import' | 'referents';
   onTabChange: (tab: 'dashboard' | 'list' | 'import' | 'referents') => void;
 }
@@ -50,7 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentRole, activeTab, onTabChange }
             {currentRole[0]}
           </div>
           <div className="overflow-hidden">
-            <p className="text-sm font-bold text-slate-900 truncate">Utente Admin</p>
+            <p className="text-sm font-bold text-slate-900 truncate">Sessione autenticata</p>
             <p className="text-[10px] text-slate-400 font-medium uppercase">{currentRole}</p>
           </div>
         </div>

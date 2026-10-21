@@ -1,7 +1,6 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Role, Category, DealStatus, Priority, Deal, Referent } from './types';
-import { INITIAL_DEALS, INITIAL_REFERENTS } from './constants';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Role, DealStatus, Deal, Referent } from './types';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import DealTable from './components/DealTable';
@@ -9,42 +8,45 @@ import DealDetailView from './components/DealDetailView';
 import ImportModule from './components/ImportModule';
 import ReferentsManager from './components/ReferentsManager';
 
+import Login from './components/Login';
+import { session, logout, readDataset, writeDataset, Session } from './services/api';
+
 const App: React.FC = () => {
-  const [currentUserRole, setCurrentUserRole] = useState<Role>(Role.ADMIN);
+  const [user, setUser] = useState<Session | null>(null);
+  const currentUserRole = user?.role || Role.VIEWER;
+  const [saving, setSaving] = useState(false);
+  const saveLock = useRef(false);
+  const revision = useRef(0);
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'list' | 'import' | 'referents'>('list');
 
-  // Stato con inizializzazione sicura
-  const [deals, setDeals] = useState<Deal[]>(() => {
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [referents, setReferents] = useState<Referent[]>([]);
+  const visibleReferents = referents.filter(r => !r.archived);
+  const loadSession = async (value: Session) => {
+    const data = await readDataset();
+    setDeals(data.deals); setReferents(data.referents); revision.current = data.revision; setUser(value);
+  };
+  useEffect(() => { session().then(loadSession).catch(() => setUser(null)); }, []);
+  const persist = async (nextDeals: Deal[], nextReferents = referents) => {
+    if (saveLock.current) return false;
+    saveLock.current = true; setSaving(true);
     try {
-      const saved = localStorage.getItem('artax_deals');
-      if (!saved) return INITIAL_DEALS;
-      const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_DEALS;
-    } catch (e) {
-      return INITIAL_DEALS;
-    }
-  });
-
-  const [referents, setReferents] = useState<Referent[]>(() => {
+      const data = await writeDataset({ deals: nextDeals, referents: nextReferents }, revision.current);
+      setDeals(data.deals); setReferents(data.referents); revision.current = data.revision;
+      return true;
+    } catch (err) { alert(err instanceof Error ? err.message : 'Salvataggio non riuscito'); return false; }
+    finally { saveLock.current = false; setSaving(false); }
+  };
+  const migrateBrowserData = async () => {
+    if (!window.confirm('Importare i dati di questo browser nel server autenticato? Gli originali locali verranno conservati.')) return;
     try {
-      const saved = localStorage.getItem('artax_referents');
-      if (!saved) return INITIAL_REFERENTS;
-      const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_REFERENTS;
-    } catch (e) {
-      return INITIAL_REFERENTS;
-    }
-  });
-
-  // Persistenza
-  useEffect(() => {
-    localStorage.setItem('artax_deals', JSON.stringify(deals));
-  }, [deals]);
-
-  useEffect(() => {
-    localStorage.setItem('artax_referents', JSON.stringify(referents));
-  }, [referents]);
+      const savedDeals = localStorage.getItem('artax_deals');
+      const savedReferents = localStorage.getItem('artax_referents');
+      if (!savedDeals && !savedReferents) { alert('Nessun dato locale disponibile'); return; }
+      await persist(savedDeals ? JSON.parse(savedDeals) : [], savedReferents ? JSON.parse(savedReferents) : []);
+    } catch { alert('Dati locali non validi: gli originali sono stati conservati'); }
+  };
 
   const selectedDeal = useMemo(() => 
     deals.find(d => d.id === selectedDealId) || null
@@ -61,37 +63,29 @@ const App: React.FC = () => {
     };
   }, [deals]);
 
-  const handleAddDeal = (newDeal: Deal) => {
-    setDeals(prev => [newDeal, ...prev]);
-    setActiveTab('list');
+  const handleAddDeal = async (newDeal: Deal) => {
+    if (await persist([newDeal, ...deals])) setActiveTab('list');
   };
-
-  const handleUpdateDeal = (updatedDeal: Deal) => {
-    setDeals(prev => prev.map(d => d.id === updatedDeal.id ? updatedDeal : d));
+  const handleUpdateDeal = async (updatedDeal: Deal) => {
+    await persist(deals.map(d => d.id === updatedDeal.id ? updatedDeal : d));
   };
-
-  const handleDeleteDeal = (id: string) => {
-    if (window.confirm(`Eliminare definitivamente la pratica ${id}?`)) {
-      setDeals(prev => prev.filter(d => d.id !== id));
-      if (selectedDealId === id) setSelectedDealId(null);
+  const handleDeleteDeal = async (id: string) => {
+    if (window.confirm(`Archiviare la pratica ${id}? I dati saranno conservati.`)) {
+      await persist(deals.map(d => d.id === id ? { ...d, status: DealStatus.ARCHIVIATA } : d));
     }
   };
-
-  const handleAddReferents = (newReferents: Referent[]) => {
-    setReferents(prev => [...prev, ...newReferents]);
-  };
-
-  const handleDeleteReferent = (id: string) => {
-    if (window.confirm("Rimuovere il referente dall'anagrafica?")) {
-      setReferents(prev => prev.filter(r => r.id !== id));
+  const handleAddReferents = async (newReferents: Referent[]) => { await persist(deals, [...referents, ...newReferents]); };
+  const handleDeleteReferent = async (id: string) => {
+    if (window.confirm('Archiviare il referente? I dati saranno conservati.')) {
+      await persist(deals, referents.map(r => r.id === id ? { ...r, archived: true } : r));
     }
   };
+  if (!user) return <Login onLogin={loadSession} />;
 
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar 
         currentRole={currentUserRole} 
-        onRoleChange={setCurrentUserRole} 
         activeTab={activeTab} 
         onTabChange={(tab) => {
           setActiveTab(tab);
@@ -99,7 +93,14 @@ const App: React.FC = () => {
         }} 
       />
 
-      <main className="flex-1 flex flex-col p-8 overflow-y-auto">
+      <main className="flex-1 flex flex-col p-8 overflow-y-auto" aria-busy={saving} style={{ pointerEvents: saving ? 'none' : 'auto' }}>
+        <div className="mb-4 flex gap-3 text-sm">
+          <span>{user.username} · {user.role}{saving ? ' · Salvataggio...' : ''}</span>
+          <button onClick={async () => { try { await logout(); setUser(null); setDeals([]); setReferents([]); } catch { alert('Uscita non riuscita'); } }}>Esci</button>
+          {user.role === Role.ADMIN && deals.length === 0 && referents.length === 0 && <>
+            <button onClick={migrateBrowserData}>Importa dati esistenti dal browser</button>
+          </>}
+        </div>
         <header className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Artax Deal Manager</h1>
@@ -122,7 +123,7 @@ const App: React.FC = () => {
             onDelete={handleDeleteDeal}
             role={currentUserRole}
             deals={deals}
-            referents={referents}
+            referents={visibleReferents}
           />
         ) : (
           <>
@@ -130,7 +131,7 @@ const App: React.FC = () => {
             {activeTab === 'list' && (
               <DealTable 
                 deals={deals} 
-                referents={referents}
+                referents={visibleReferents}
                 onDealSelect={setSelectedDealId} 
                 onDeleteDeal={handleDeleteDeal} 
                 onUpdateDeal={handleUpdateDeal}
@@ -138,7 +139,7 @@ const App: React.FC = () => {
             )}
             {activeTab === 'referents' && (
               <ReferentsManager 
-                referents={referents} 
+                referents={visibleReferents}
                 onAdd={handleAddReferents} 
                 onDelete={handleDeleteReferent} 
               />
@@ -148,7 +149,7 @@ const App: React.FC = () => {
                 onSave={handleAddDeal} 
                 onUpdate={handleUpdateDeal} 
                 existingDeals={deals}
-                referents={referents}
+                referents={visibleReferents}
               />
             )}
           </>
